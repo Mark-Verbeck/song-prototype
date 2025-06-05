@@ -89,14 +89,20 @@
       </div>
 
       <div v-if="comparisonDisplay.songs.length === 2" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center">
-          <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[0].title }}</h3>
-          <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[0].artist }}</p>
-          <audio controls :src="comparisonDisplay.songs[0].url" class="w-full mb-3"></audio>
-          <p class="text-gray-700 text-sm">
-            Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[0].likes }}</span> |
-            Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[0].dislikes }}</span>
-          </p>
+        <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
+          <div>
+            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[0].title }}</h3>
+            <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[0].artist }}</p>
+            <audio controls :src="comparisonDisplay.songs[0].url" class="w-full mb-3" :ref="el => setAudioRef(0, el)"></audio>
+            <div class="flex justify-center gap-2 mb-3">
+                <button @click="playFullSong(0)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
+                <button @click="playClip(0, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
+            </div>
+            <p class="text-gray-700 text-sm">
+              Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[0].likes }}</span> |
+              Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[0].dislikes }}</span>
+            </p>
+          </div>
           <button
             @click="handleComparisonVote(comparisonDisplay.songs[0].id, comparisonDisplay.songs[1].id)"
             class="mt-4 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -105,14 +111,20 @@
           </button>
         </div>
 
-        <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center">
-          <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[1].title }}</h3>
-          <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[1].artist }}</p>
-          <audio controls :src="comparisonDisplay.songs[1].url" class="w-full mb-3"></audio>
-          <p class="text-gray-700 text-sm">
-            Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[1].likes }}</span> |
-            Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[1].dislikes }}</span>
-          </p>
+        <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
+          <div>
+            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[1].title }}</h3>
+            <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[1].artist }}</p>
+            <audio controls :src="comparisonDisplay.songs[1].url" class="w-full mb-3" :ref="el => setAudioRef(1, el)"></audio>
+            <div class="flex justify-center gap-2 mb-3">
+                <button @click="playFullSong(1)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
+                <button @click="playClip(1, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
+            </div>
+            <p class="text-gray-700 text-sm">
+              Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[1].likes }}</span> |
+              Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[1].dislikes }}</span>
+            </p>
+          </div>
           <button
             @click="handleComparisonVote(comparisonDisplay.songs[1].id, comparisonDisplay.songs[0].id)"
             class="mt-4 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
@@ -122,6 +134,32 @@
         </div>
       </div>
     </div>
+
+    <hr class="my-8 border-gray-200" />
+
+    <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">All Uploaded Songs</h2>
+    <div v-if="loadingFiles" class="text-center text-gray-500">Loading songs...</div>
+    <div v-else-if="existingSongs.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+      <div v-for="song in existingSongs" :key="song.id" class="border border-gray-200 rounded-lg p-4 text-center bg-gray-50 shadow-sm flex flex-col justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ song.title }}</h3>
+          <p class="text-gray-600 text-sm mb-2 italic">{{ song.artist }}</p>
+          <audio controls :src="song.url" class="w-full mb-3"></audio>
+          <p class="text-gray-700 text-sm">
+            Likes: <span class="font-bold text-green-700">{{ song.likes }}</span> |
+            Dislikes: <span class="font-bold text-red-700">{{ song.dislikes }}</span>
+          </p>
+          <p class="text-xs text-gray-500 mt-2">Uploaded: {{ formatDate(song.uploadDate) }}</p>
+          <p class="text-xs text-gray-400 break-all">ID: {{ song.id }}</p>
+        </div>
+        <div class="mt-4 flex gap-2 justify-center">
+          <button @click="likeSong(song.id)" class="py-1 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 text-sm">Like</button>
+          <button @click="dislikeSong(song.id)" class="py-1 px-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 text-sm">Dislike</button>
+        </div>
+        <a :href="song.url" target="_blank" class="text-blue-600 hover:underline text-sm mt-2">Download File</a>
+      </div>
+    </div>
+    <p v-else class="text-center text-gray-500 italic">No songs uploaded yet.</p>
   </div>
 </template>
 
@@ -140,9 +178,16 @@ const fileInput = ref(null);
 const existingSongs = ref([]);
 const loadingFiles = ref(true);
 
-const comparisonDisplay = ref({ message: '', songs: [] }); // Now holds an array for two songs
+const comparisonDisplay = ref({ message: '', songs: [] });
 const gettingComparisonSongs = ref(false);
 
+// Refs for the audio elements in the comparison section
+const audioRefs = ref([]);
+const audioClipTimeouts = ref([]); // To store setTimeout IDs for clipping
+
+const setAudioRef = (index, el) => {
+  audioRefs.value[index] = el;
+};
 
 const handleFileChange = (event) => {
   selectedFile.value = event.target.files[0];
@@ -259,6 +304,7 @@ const dislikeSong = async (songId) => {
 
 // --- Comparison Logic ---
 const getComparisonSongs = async () => {
+  stopAllComparisonAudio(); // Stop any currently playing audio before fetching new songs
   gettingComparisonSongs.value = true;
   comparisonDisplay.value = { message: 'Picking two random songs...', songs: [] };
   try {
@@ -283,6 +329,7 @@ const getComparisonSongs = async () => {
 };
 
 const handleComparisonVote = async (chosenSongId, unchosenSongId) => {
+  stopAllComparisonAudio(); // Stop audio before voting
   comparisonDisplay.value.message = 'Recording your vote...';
   try {
     const response = await fetch('/api/songs/compare-vote', {
@@ -296,7 +343,6 @@ const handleComparisonVote = async (chosenSongId, unchosenSongId) => {
     if (response.ok) {
       const data = await response.json();
       comparisonDisplay.value.message = data.message;
-      // Optionally update the displayed comparison songs with new counts, or just clear
       comparisonDisplay.value.songs = []; // Clear for next comparison
       await fetchExistingSongs(); // Refresh the main list to show updated counts
     } else {
@@ -309,6 +355,52 @@ const handleComparisonVote = async (chosenSongId, unchosenSongId) => {
   }
 };
 
+// --- Audio Playback Logic ---
+const stopAllComparisonAudio = () => {
+  audioRefs.value.forEach(audio => {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  });
+  audioClipTimeouts.value.forEach(timeoutId => clearTimeout(timeoutId));
+  audioClipTimeouts.value = []; // Clear timeouts
+};
+
+const playFullSong = (index) => {
+  stopAllComparisonAudio(); // Stop others before playing this one
+  const audio = audioRefs.value[index];
+  if (audio) {
+    audio.currentTime = 0; // Start from beginning
+    audio.play().catch(e => console.error("Error playing full song:", e));
+  }
+};
+
+const playClip = (index, durationSeconds) => {
+  stopAllComparisonAudio(); // Stop others before playing this one
+  const audio = audioRefs.value[index];
+  if (audio) {
+    audio.currentTime = 0; // Start from beginning
+    audio.play().then(() => {
+      // Set a timeout to pause after durationSeconds
+      const timeoutId = setTimeout(() => {
+        audio.pause();
+        audio.currentTime = 0; // Reset after clip ends
+        console.log(`Clip ended for song ${index}`);
+      }, durationSeconds * 1000);
+      audioClipTimeouts.value[index] = timeoutId;
+
+      // Also listen for manual pause to clear timeout
+      const onPause = () => {
+        clearTimeout(timeoutId);
+        audio.removeEventListener('pause', onPause);
+      };
+      audio.addEventListener('pause', onPause);
+
+    }).catch(e => console.error(`Error playing clip for song ${index}:`, e));
+  }
+};
+
 
 const formatDate = (isoString) => {
   if (!isoString) return '';
@@ -318,5 +410,10 @@ const formatDate = (isoString) => {
 
 onMounted(() => {
   fetchExistingSongs();
+});
+
+// Lifecycle hook to clean up audio on component unmount
+onUnmounted(() => {
+  stopAllComparisonAudio();
 });
 </script>
