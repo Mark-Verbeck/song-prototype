@@ -1,49 +1,66 @@
-name: Deploy Vue App to GitHub Pages # Changed name for clarity
+name: Deploy Nuxt App to GitHub Pages # Descriptive name for your workflow
 
 on:
+  # Allows you to manually trigger the workflow from the 'Actions' tab in GitHub
   workflow_dispatch:
+  # Automatically trigger the workflow on pushes to the 'main' branch
   push:
     branches:
       - main
 
+# Set permissions for the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read   # Allows the workflow to read your repository's code
+  pages: write     # Allows the workflow to write to the GitHub Pages site
+  id-token: write  # Required for OpenID Connect authentication with GitHub Pages
+
+# Ensures that only one deployment job runs at a time for this workflow
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
     steps:
-      - uses: actions/checkout@v4
-      # - run: corepack enable # <-- REMOVE THIS unless you specifically use Yarn 2+ for this project
-      - uses: actions/setup-node@v4
+      - name: Checkout repository # Get your project's code
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack (for Yarn 2+/pnpm) # Keep this if your Nuxt project uses Yarn 2+ or pnpm
+        # Remove this step if you are strictly using npm in your Nuxt project.
+        run: corepack enable
+
+      - name: Setup Node.js # Set up the Node.js environment
+        uses: actions/setup-node@v4
         with:
-          node-version: "20" # Ensure this matches your project's Node.js version if specific
+          node-version: "20" # Specify your desired Node.js version (e.g., "18", "20")
+          cache: 'npm'       # Cache Node.js modules for faster subsequent builds (can be 'yarn' or 'pnpm')
 
-      - name: Install dependencies # <-- Standard for most JS projects
-        run: npm install
+      - name: Install dependencies # Install your project's npm packages
+        run: npm install # Use 'yarn install' or 'pnpm install' if that's your package manager
 
-      - name: Build Vue application # <-- CRITICAL CHANGE: Use npm run build for Vue
-        # You might need to set a publicPath/base for Vue Router/assets
-        # depending on your Vue setup and how you want URLs to resolve.
-        # This is typically done in vue.config.js or vite.config.js
-        # Example for Vue CLI:
-        # run: npm run build -- --dest docs # if you want to output to /docs
-        run: npm run build # Assuming your package.json has a "build" script
+      - name: Build Nuxt application for GitHub Pages # THIS IS THE SOLUTION TO THE 404 ERROR (by building the app)
+        # This command builds your Nuxt app for static hosting and sets the base URL.
+        # It ensures that browser-readable HTML, CSS, and JS are generated.
+        # IMPORTANT: Replace '/song-prototype/' with your exact GitHub repository name
+        # This is crucial for assets and routing to work correctly on GitHub Pages subpaths.
+        run: NUXT_APP_BASE_URL=/song-prototype/ npx nuxt build --preset github_pages
 
-      - name: Upload artifact
+      - name: Upload artifact # Upload the built static files
         uses: actions/upload-pages-artifact@v3
         with:
-          # <-- CRITICAL CHANGE: Point to the standard Vue build output directory
-          path: ./dist # For Vue CLI/Vite, this is typically 'dist'
+          # THIS IS THE SOLUTION TO THE "tar: dist: Cannot open" ERROR
+          # This path MUST match the directory where Nuxt (using Nitro) outputs its static files.
+          # For Nuxt 3, this is typically './.output/public'.
+          path: ./.output/public
 
-  # Deployment job
   deploy:
-    needs: build
-    permissions:
-      pages: write
-      id-token: write
     environment:
-      name: github-pages # Ensure this matches the name in your repo settings > Pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+      name: github-pages # Refers to the GitHub Pages environment
+      url: ${{ steps.deployment.outputs.page_url }} # The URL where your site will be deployed
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner for deployment
+    needs: build # Ensures this job only runs after the 'build' job successfully completes
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages # Deploy the uploaded artifact
+        id: deployment # Assigns an ID to this step to reference its outputs
+        uses: actions/deploy-pages@v4 # Official action for deploying to GitHub Pages
