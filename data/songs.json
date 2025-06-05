@@ -1,0 +1,42 @@
+[
+  {
+    "id": "4cfd5556-42c5-44ef-ac0f-ce290e23142b",
+    "title": "Bam",
+    "artist": "Bam",
+    "filename": "sdknbu1fyw7mfe2pd8z732akd.wav",
+    "url": "/uploads/sdknbu1fyw7mfe2pd8z732akd.wav",
+    "uploadDate": "2025-06-05T17:09:06.514Z",
+    "likes": 1,
+    "dislikes": 0
+  },
+  {
+    "id": "56c2f327-8fa6-4d8d-a944-60208eccd3c3",
+    "title": "Sam",
+    "artist": "Sam",
+    "filename": "kxva943hqej4fp9nn78btme3w.wav",
+    "url": "/uploads/kxva943hqej4fp9nn78btme3w.wav",
+    "uploadDate": "2025-06-05T16:52:31.831Z",
+    "likes": 3,
+    "dislikes": 3
+  },
+  {
+    "id": "0cee2a25-9575-4c3c-969c-028043425f97",
+    "title": "Tom",
+    "artist": "Tom",
+    "filename": "g7zmeg7rkfl3gbeyg3dlvl2k2.wav",
+    "url": "/uploads/g7zmeg7rkfl3gbeyg3dlvl2k2.wav",
+    "uploadDate": "2025-06-05T16:52:10.304Z",
+    "likes": 5,
+    "dislikes": 2
+  },
+  {
+    "id": "84a71ca7-a72e-4ca9-a2e1-5e672072b805",
+    "title": "Bob",
+    "artist": "Bob",
+    "filename": "ofn0taovlopsb1rb33j81h4z1.wav",
+    "url": "/uploads/ofn0taovlopsb1rb33j81h4z1.wav",
+    "uploadDate": "2025-06-05T16:51:38.511Z",
+    "likes": 0,
+    "dislikes": 4
+  }
+]
