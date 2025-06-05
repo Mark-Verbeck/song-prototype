@@ -1,66 +1,59 @@
-name: Deploy Nuxt App to GitHub Pages # Descriptive name for your workflow
+name: Deploy Nuxt App to GitHub Pages
 
 on:
-  # Allows you to manually trigger the workflow from the 'Actions' tab in GitHub
   workflow_dispatch:
-  # Automatically trigger the workflow on pushes to the 'main' branch
   push:
     branches:
       - main
 
-# Set permissions for the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: read   # Allows the workflow to read your repository's code
-  pages: write     # Allows the workflow to write to the GitHub Pages site
-  id-token: write  # Required for OpenID Connect authentication with GitHub Pages
+  contents: read
+  pages: write
+  id-token: write
 
-# Ensures that only one deployment job runs at a time for this workflow
 concurrency:
   group: "pages"
   cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository # Get your project's code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Enable Corepack (for Yarn 2+/pnpm) # Keep this if your Nuxt project uses Yarn 2+ or pnpm
-        # Remove this step if you are strictly using npm in your Nuxt project.
+      - name: Enable Corepack (for Yarn 2+/pnpm)
+        # Keep this if your Nuxt project specifically uses Yarn 2+ or pnpm
+        # Otherwise, you can remove this line.
         run: corepack enable
 
-      - name: Setup Node.js # Set up the Node.js environment
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20" # Specify your desired Node.js version (e.g., "18", "20")
-          cache: 'npm'       # Cache Node.js modules for faster subsequent builds (can be 'yarn' or 'pnpm')
+          node-version: "20"
+          cache: 'npm' # This still helps with caching, but the registry override is key
 
-      - name: Install dependencies # Install your project's npm packages
-        run: npm install # Use 'yarn install' or 'pnpm install' if that's your package manager
+      - name: Set npm registry to public # <-- NEW STEP: Force public npm registry
+        run: npm config set registry https://registry.npmjs.org/
 
-      - name: Build Nuxt application for GitHub Pages # THIS IS THE SOLUTION TO THE 404 ERROR (by building the app)
-        # This command builds your Nuxt app for static hosting and sets the base URL.
-        # It ensures that browser-readable HTML, CSS, and JS are generated.
-        # IMPORTANT: Replace '/song-prototype/' with your exact GitHub repository name
-        # This is crucial for assets and routing to work correctly on GitHub Pages subpaths.
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Nuxt application for GitHub Pages
         run: NUXT_APP_BASE_URL=/song-prototype/ npx nuxt build --preset github_pages
 
-      - name: Upload artifact # Upload the built static files
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # THIS IS THE SOLUTION TO THE "tar: dist: Cannot open" ERROR
-          # This path MUST match the directory where Nuxt (using Nitro) outputs its static files.
-          # For Nuxt 3, this is typically './.output/public'.
           path: ./.output/public
 
   deploy:
     environment:
-      name: github-pages # Refers to the GitHub Pages environment
-      url: ${{ steps.deployment.outputs.page_url }} # The URL where your site will be deployed
-    runs-on: ubuntu-latest # Use the latest Ubuntu runner for deployment
-    needs: build # Ensures this job only runs after the 'build' job successfully completes
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
     steps:
-      - name: Deploy to GitHub Pages # Deploy the uploaded artifact
-        id: deployment # Assigns an ID to this step to reference its outputs
-        uses: actions/deploy-pages@v4 # Official action for deploying to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
