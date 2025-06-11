@@ -1,10 +1,11 @@
 <template>
   <div class="container mx-auto p-4 md:p-8 bg-white shadow-lg rounded-lg my-8 font-sans">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Sound Prototype with Comparison Voting {{ useAuthStore().test }}</h1>
+    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Sound Prototype with Comparison Voting</h1>
     <p class="text-center text-gray-600 mb-8">
       Uploads save files to <code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-purple-700">public/uploads</code> and metadata to <code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-purple-700">data/songs.json</code>.
     </p>
-    <!-- <NuxtLink to="/reset-password" >Reset Password</NuxtLink> -->
+
+    <!-- Upload New Song Section - now uses uploadStore -->
     <div class="flex flex-col gap-4 mb-8 p-4 border border-gray-200 rounded-md bg-gray-50">
       <h2 class="text-xl font-semibold text-gray-700 mb-2">Upload New Song</h2>
       <input
@@ -32,38 +33,39 @@
                hover:file:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
       />
       <button
-        @click="uploadFile"
-        :disabled="!selectedFile || uploading || !songTitle || !songArtist"
+        @click="initiateUpload"
+        :disabled="!selectedFile || uploadStore.uploading || !songTitle || !songArtist"
         class="py-2 px-6 rounded-md transition-colors duration-300
                text-white font-semibold w-full sm:w-auto self-center"
         :class="{
-          'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2': !uploading && selectedFile && songTitle && songArtist,
-          'bg-gray-400 cursor-not-allowed': uploading || !selectedFile || !songTitle || !songArtist
+          'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2': !uploadStore.uploading && selectedFile && songTitle && songArtist,
+          'bg-gray-400 cursor-not-allowed': uploadStore.uploading || !selectedFile || !songTitle || !songArtist
         }"
       >
-        {{ uploading ? 'Uploading...' : 'Upload Song' }}
+        {{ uploadStore.uploading ? 'Uploading...' : 'Upload Song' }}
       </button>
     </div>
 
+    <!-- Upload Message Display - now uses uploadStore's state -->
     <div
-      v-if="uploadMessage"
+      v-if="uploadStore.uploadMessage"
       class="p-4 rounded-md text-center text-sm font-medium mb-8"
       :class="{
-        'bg-green-100 text-green-700 border border-green-200': isSuccess,
-        'bg-red-100 text-red-700 border border-red-200': !isSuccess
+        'bg-green-100 text-green-700 border border-green-200': uploadStore.isSuccess,
+        'bg-red-100 text-red-700 border border-red-200': !uploadStore.isSuccess
       }"
     >
-      <p class="mb-2">{{ uploadMessage }}</p>
-      <div v-if="uploadedSongDetails.filename">
-        <p><strong class="font-bold">ID:</strong> {{ uploadedSongDetails.id }}</p>
-        <p><strong class="font-bold">File:</strong> {{ uploadedSongDetails.filename }}</p>
-        <p><strong class="font-bold">Title:</strong> {{ uploadedSongDetails.title }}</p>
-        <p><strong class="font-bold">Artist:</strong> {{ uploadedSongDetails.artist }}</p>
-        <p><strong class="font-bold">Likes:</strong> {{ uploadedSongDetails.likes }} | <strong class="font-bold">Dislikes:</strong> {{ uploadedSongDetails.dislikes }}</p>
+      <p class="mb-2">{{ uploadStore.uploadMessage }}</p>
+      <div v-if="uploadStore.uploadedSongDetails">
+        <p><strong class="font-bold">ID:</strong> {{ uploadStore.uploadedSongDetails.id }}</p>
+        <p><strong class="font-bold">File:</strong> {{ uploadStore.uploadedSongDetails.filename }}</p>
+        <p><strong class="font-bold">Title:</strong> {{ uploadStore.uploadedSongDetails.title }}</p>
+        <p><strong class="font-bold">Artist:</strong> {{ uploadStore.uploadedSongDetails.artist }}</p>
+        <p><strong class="font-bold">Likes:</strong> {{ uploadStore.uploadedSongDetails.likes }} | <strong class="font-bold">Dislikes:</strong> {{ uploadStore.uploadedSongDetails.dislikes }}</p>
         <p class="break-all"><strong class="font-bold">URL:</strong>
-          <a :href="uploadedSongDetails.url" target="_blank" class="text-blue-600 hover:underline ml-1">{{ uploadedSongDetails.url }}</a>
+          <a :href="uploadStore.uploadedSongDetails.url" target="_blank" class="text-blue-600 hover:underline ml-1">{{ uploadStore.uploadedSongDetails.url }}</a>
         </p>
-        <audio v-if="uploadedSongDetails.url" controls :src="uploadedSongDetails.url" class="w-full mt-4"></audio>
+        <audio v-if="uploadStore.uploadedSongDetails.url" controls :src="uploadStore.uploadedSongDetails.url" class="w-full mt-4"></audio>
       </div>
     </div>
 
@@ -72,6 +74,7 @@
     <div class="flex flex-col gap-4 mb-8 p-4 border border-gray-200 rounded-md bg-purple-50">
       <h2 class="text-xl font-semibold text-gray-700 mb-2 text-center">Compare Two Songs</h2>
       <button
+        type="button"
         @click="getComparisonSongs"
         :disabled="gettingComparisonSongs"
         class="py-2 px-6 rounded-md transition-colors duration-300
@@ -89,14 +92,15 @@
       </div>
 
       <div v-if="comparisonDisplay.songs.length === 2" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Song 1 -->
         <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
           <div>
             <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[0].title }}</h3>
             <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[0].artist }}</p>
             <audio controls :src="comparisonDisplay.songs[0].url" class="w-full mb-3" :ref="el => setAudioRef(0, el)"></audio>
             <div class="flex justify-center gap-2 mb-3">
-                <button @click="playFullSong(0)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
-                <button @click="playClip(0, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
+                <button type="button" @click="playFullSong(0)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
+                <button type="button" @click="playClip(0, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
             </div>
             <p class="text-gray-700 text-sm">
               Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[0].likes }}</span> |
@@ -104,6 +108,7 @@
             </p>
           </div>
           <button
+            type="button"
             @click="handleComparisonVote(comparisonDisplay.songs[0].id, comparisonDisplay.songs[1].id)"
             class="mt-4 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
@@ -111,14 +116,15 @@
           </button>
         </div>
 
+        <!-- Song 2 -->
         <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
           <div>
             <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[1].title }}</h3>
             <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[1].artist }}</p>
             <audio controls :src="comparisonDisplay.songs[1].url" class="w-full mb-3" :ref="el => setAudioRef(1, el)"></audio>
             <div class="flex justify-center gap-2 mb-3">
-                <button @click="playFullSong(1)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
-                <button @click="playClip(1, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
+                <button type="button" @click="playFullSong(1)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
+                <button type="button" @click="playClip(1, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
             </div>
             <p class="text-gray-700 text-sm">
               Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[1].likes }}</span> |
@@ -154,8 +160,8 @@
           <p class="text-xs text-gray-400 break-all">ID: {{ song.id }}</p>
         </div>
         <div class="mt-4 flex gap-2 justify-center">
-          <button @click="likeSong(song.id)" class="py-1 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 text-sm">Like</button>
-          <button @click="dislikeSong(song.id)" class="py-1 px-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 text-sm">Dislike</button>
+          <button type="button" @click="likeSong(song.id)" class="py-1 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 text-sm">Like</button>
+          <button type="button" @click="dislikeSong(song.id)" class="py-1 px-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 text-sm">Dislike</button>
         </div>
         <a :href="song.url" target="_blank" class="text-blue-600 hover:underline text-sm mt-2">Download File</a>
       </div>
@@ -165,31 +171,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../store/authStore';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useAuthStore } from '~/store/authStore'; // Correct path to 'stores'
+import { useUploadStore } from '~/store/uploadStore'; // Import the upload store
 
-// definePageMeta({
-//   middleware: ['auth'] 
-// });
+// Apply auth middleware to this page
+definePageMeta({
+  middleware: ['auth'] 
+});
 
+// --- State and actions from new uploadStore ---
+const uploadStore = useUploadStore();
 const selectedFile = ref(null);
 const songTitle = ref('');
 const songArtist = ref('');
-const uploadMessage = ref('');
-const uploadedSongDetails = ref({});
-const uploading = ref(false);
-const isSuccess = ref(true);
 const fileInput = ref(null);
 
+// --- Existing dashboard states ---
 const existingSongs = ref([]);
 const loadingFiles = ref(true);
-
 const comparisonDisplay = ref({ message: '', songs: [] });
 const gettingComparisonSongs = ref(false);
 
-// Refs for the audio elements in the comparison section
 const audioRefs = ref([]);
-const audioClipTimeouts = ref([]); // To store setTimeout IDs for clipping
+const audioClipTimeouts = []; // Changed to array for setTimeout IDs
 
 const setAudioRef = (index, el) => {
   audioRefs.value[index] = el;
@@ -199,57 +204,19 @@ const handleFileChange = (event) => {
   selectedFile.value = event.target.files[0];
 };
 
-const uploadFile = async () => {
-  if (!selectedFile.value || !songTitle.value.trim() || !songArtist.value.trim()) {
-    uploadMessage.value = 'Please select a file and provide a title and artist.';
-    isSuccess.value = false;
-    return;
-  }
-
-  uploading.value = true;
-  uploadMessage.value = 'Uploading...';
-  isSuccess.value = true;
-
-  const formData = new FormData();
-  formData.append('soundFile', selectedFile.value);
-  formData.append('title', songTitle.value.trim());
-  formData.append('artist', songArtist.value.trim());
-
-  try {
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      uploadMessage.value = data.message;
-      uploadedSongDetails.value = data.song;
-      isSuccess.value = true;
-
-      await fetchExistingSongs(); // Refresh the list
-
-      // Clear inputs
-      selectedFile.value = null;
-      songTitle.value = '';
-      songArtist.value = '';
-      if (fileInput.value) {
-        fileInput.value.value = '';
-      }
-
-    } else {
-      const errorData = await response.json();
-      uploadMessage.value = `Upload failed: ${errorData.statusMessage || response.statusText}`;
-      isSuccess.value = false;
-      uploadedSongDetails.value = {};
+// Refactored upload initiation to use the uploadStore
+const initiateUpload = async () => {
+  // Pass the necessary data to the uploadStore's action
+  const success = await uploadStore.uploadSong(selectedFile.value, songTitle.value, songArtist.value);
+  if (success) {
+    await fetchExistingSongs(); // Refresh the main list after successful upload
+    // Clear form inputs
+    selectedFile.value = null;
+    songTitle.value = '';
+    songArtist.value = '';
+    if (fileInput.value) {
+      fileInput.value.value = '';
     }
-  } catch (error) {
-    console.error('Error during upload:', error);
-    uploadMessage.value = `An unexpected error occurred: ${error.message}`;
-    isSuccess.value = false;
-    uploadedSongDetails.value = {};
-  } finally {
-    uploading.value = false;
   }
 };
 
@@ -271,7 +238,6 @@ const fetchExistingSongs = async () => {
   }
 };
 
-// --- Single Like/Dislike (for All Uploaded Songs section) ---
 const likeSong = async (songId) => {
   try {
     const response = await fetch(`/api/songs/${songId}/like`, { method: 'POST' });
@@ -308,7 +274,6 @@ const dislikeSong = async (songId) => {
   }
 };
 
-// --- Comparison Logic ---
 const getComparisonSongs = async () => {
   stopAllComparisonAudio(); // Stop any currently playing audio before fetching new songs
   gettingComparisonSongs.value = true;
@@ -361,7 +326,6 @@ const handleComparisonVote = async (chosenSongId, unchosenSongId) => {
   }
 };
 
-// --- Audio Playback Logic ---
 const stopAllComparisonAudio = () => {
   audioRefs.value.forEach(audio => {
     if (audio) {
@@ -369,8 +333,9 @@ const stopAllComparisonAudio = () => {
       audio.currentTime = 0;
     }
   });
-  audioClipTimeouts.value.forEach(timeoutId => clearTimeout(timeoutId));
-  audioClipTimeouts.value = []; // Clear timeouts
+  // Changed audioClipTimeouts to be an array, but the clear logic needs to handle that.
+  audioClipTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+  audioClipTimeouts.splice(0, audioClipTimeouts.length); // Clear the array
 };
 
 const playFullSong = (index) => {
@@ -388,18 +353,23 @@ const playClip = (index, durationSeconds) => {
   if (audio) {
     audio.currentTime = 0; // Start from beginning
     audio.play().then(() => {
-      // Set a timeout to pause after durationSeconds
+      // Store timeout ID in the array at the corresponding index
       const timeoutId = setTimeout(() => {
         audio.pause();
         audio.currentTime = 0; // Reset after clip ends
         console.log(`Clip ended for song ${index}`);
       }, durationSeconds * 1000);
-      audioClipTimeouts.value[index] = timeoutId;
+      audioClipTimeouts[index] = timeoutId; // Assign directly to index in the array
 
       // Also listen for manual pause to clear timeout
       const onPause = () => {
         clearTimeout(timeoutId);
+        // Remove listener to prevent memory leaks if component unmounts
         audio.removeEventListener('pause', onPause);
+        // Remove from array if paused early
+        if (audioClipTimeouts[index] === timeoutId) {
+          delete audioClipTimeouts[index];
+        }
       };
       audio.addEventListener('pause', onPause);
 
