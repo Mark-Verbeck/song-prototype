@@ -2,10 +2,10 @@
   <div class="container mx-auto p-4 md:p-8 bg-white shadow-lg rounded-lg my-8 font-sans">
     <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Sound Prototype with Comparison Voting</h1>
     <p class="text-center text-gray-600 mb-8">
-      Uploads save files to <code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-purple-700">public/uploads</code> and metadata to <code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-purple-700">data/songs.json</code>.
+      Uploads save files to <code class="bg-gray-100 px-1 py-0.5 rounded text-sm text-purple-700">public/uploads</code> and metadata to Supabase Database.
     </p>
 
-    <!-- Upload New Song Section - now uses uploadStore -->
+    <!-- Upload New Song Section -->
     <div class="flex flex-col gap-4 mb-8 p-4 border border-gray-200 rounded-md bg-gray-50">
       <h2 class="text-xl font-semibold text-gray-700 mb-2">Upload New Song</h2>
       <input
@@ -46,7 +46,7 @@
       </button>
     </div>
 
-    <!-- Upload Message Display - now uses uploadStore's state -->
+    <!-- Upload Message Display -->
     <div
       v-if="uploadStore.uploadMessage"
       class="p-4 rounded-md text-center text-sm font-medium mb-8"
@@ -76,40 +76,40 @@
       <button
         type="button"
         @click="getComparisonSongs"
-        :disabled="gettingComparisonSongs"
+        :disabled="songComparisonStore.loadingComparison"
         class="py-2 px-6 rounded-md transition-colors duration-300
                text-white font-semibold w-full sm:w-auto self-center"
         :class="{
-          'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2': !gettingComparisonSongs,
-          'bg-gray-400 cursor-not-allowed': gettingComparisonSongs
+          'bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2': !songComparisonStore.loadingComparison,
+          'bg-gray-400 cursor-not-allowed': songComparisonStore.loadingComparison
         }"
       >
-        {{ gettingComparisonSongs ? 'Picking...' : 'Get Songs for Comparison' }}
+        {{ songComparisonStore.loadingComparison ? 'Picking...' : 'Get Songs for Comparison' }}
       </button>
 
-      <div v-if="comparisonDisplay.message" class="text-center text-sm font-medium mt-4 text-purple-700">
-        {{ comparisonDisplay.message }}
+      <div v-if="songComparisonStore.comparisonMessage" class="text-center text-sm font-medium mt-4 text-purple-700">
+        {{ songComparisonStore.comparisonMessage }}
       </div>
 
-      <div v-if="comparisonDisplay.songs.length === 2" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div v-if="songComparisonStore.comparisonSongs.length === 2" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Song 1 -->
         <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
           <div>
-            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[0].title }}</h3>
-            <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[0].artist }}</p>
-            <audio controls :src="comparisonDisplay.songs[0].url" class="w-full mb-3" :ref="el => setAudioRef(0, el)"></audio>
+            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ songComparisonStore.comparisonSongs[0].title }}</h3>
+            <p class="text-gray-600 text-sm mb-2 italic">{{ songComparisonStore.comparisonSongs[0].artist }}</p>
+            <audio controls :src="songComparisonStore.comparisonSongs[0].url" class="w-full mb-3" :ref="el => setAudioRef(0, el)"></audio>
             <div class="flex justify-center gap-2 mb-3">
                 <button type="button" @click="playFullSong(0)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
                 <button type="button" @click="playClip(0, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
             </div>
             <p class="text-gray-700 text-sm">
-              Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[0].likes }}</span> |
-              Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[0].dislikes }}</span>
+              Likes: <span class="font-bold text-green-700">{{ songComparisonStore.comparisonSongs[0].likes }}</span> |
+              Dislikes: <span class="font-bold text-red-700">{{ songComparisonStore.comparisonSongs[0].dislikes }}</span>
             </p>
           </div>
           <button
             type="button"
-            @click="handleComparisonVote(comparisonDisplay.songs[0].id, comparisonDisplay.songs[1].id)"
+            @click="handleComparisonVote(songComparisonStore.comparisonSongs[0].id, songComparisonStore.comparisonSongs[1].id)"
             class="mt-4 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
             I Like This One!
@@ -119,21 +119,21 @@
         <!-- Song 2 -->
         <div class="p-4 border border-purple-200 rounded-md bg-purple-100 text-center flex flex-col justify-between">
           <div>
-            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ comparisonDisplay.songs[1].title }}</h3>
-            <p class="text-gray-600 text-sm mb-2 italic">{{ comparisonDisplay.songs[1].artist }}</p>
-            <audio controls :src="comparisonDisplay.songs[1].url" class="w-full mb-3" :ref="el => setAudioRef(1, el)"></audio>
+            <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ songComparisonStore.comparisonSongs[1].title }}</h3>
+            <p class="text-gray-600 text-sm mb-2 italic">{{ songComparisonStore.comparisonSongs[1].artist }}</p>
+            <audio controls :src="songComparisonStore.comparisonSongs[1].url" class="w-full mb-3" :ref="el => setAudioRef(1, el)"></audio>
             <div class="flex justify-center gap-2 mb-3">
                 <button type="button" @click="playFullSong(1)" class="py-1 px-3 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600">Play Full</button>
                 <button type="button" @click="playClip(1, 30)" class="py-1 px-3 bg-indigo-500 text-white rounded-md text-sm hover:bg-indigo-600">Play 30s Clip</button>
             </div>
             <p class="text-gray-700 text-sm">
-              Likes: <span class="font-bold text-green-700">{{ comparisonDisplay.songs[1].likes }}</span> |
-              Dislikes: <span class="font-bold text-red-700">{{ comparisonDisplay.songs[1].dislikes }}</span>
+              Likes: <span class="font-bold text-green-700">{{ songComparisonStore.comparisonSongs[1].likes }}</span> |
+              Dislikes: <span class="font-bold text-red-700">{{ songComparisonStore.comparisonSongs[1].dislikes }}</span>
             </p>
           </div>
           <button
             type="button"
-            @click="handleComparisonVote(comparisonDisplay.songs[1].id, comparisonDisplay.songs[0].id)"
+            @click="handleComparisonVote(songComparisonStore.comparisonSongs[1].id, songComparisonStore.comparisonSongs[0].id)"
             class="mt-4 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
           >
             I Like This One!
@@ -145,25 +145,24 @@
     <hr class="my-8 border-gray-200" />
 
     <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">All Uploaded Songs</h2>
-    <div v-if="loadingFiles" class="text-center text-gray-500">Loading songs...</div>
-    <div v-else-if="existingSongs.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
-      <div v-for="song in existingSongs" :key="song.id" class="border border-gray-200 rounded-lg p-4 text-center bg-gray-50 shadow-sm flex flex-col justify-between">
+    <div v-if="songStore.loadingSongs" class="text-center text-gray-500">Loading songs...</div>
+    <div v-else-if="songStore.songs.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
+      <div v-for="song in songStore.songs" :key="song.id" class="border border-gray-200 rounded-lg p-4 text-center bg-gray-50 shadow-sm flex flex-col justify-between">
         <div>
           <h3 class="font-semibold text-gray-800 text-lg mb-1 break-words">{{ song.title }}</h3>
           <p class="text-gray-600 text-sm mb-2 italic">{{ song.artist }}</p>
           <audio controls :src="song.url" class="w-full mb-3"></audio>
           <p class="text-gray-700 text-sm">
-            Likes: <span class="font-bold text-green-700">{{ song.likes }}</span> |
-            Dislikes: <span class="font-bold text-red-700">{{ song.dislikes }}</span>
+            Total Votes: {{ song.likes + song.dislikes }} | 
+            Approval: <span :class="{'text-green-700': calculateApprovalRate(song.likes, song.dislikes) >= 70, 'text-red-700': calculateApprovalRate(song.likes, song.dislikes) < 50}">
+              {{ calculateApprovalRate(song.likes, song.dislikes) }}%
+            </span>
           </p>
-          <p class="text-xs text-gray-500 mt-2">Uploaded: {{ formatDate(song.uploadDate) }}</p>
-          <p class="text-xs text-gray-400 break-all">ID: {{ song.id }}</p>
+          <p class="text-xs text-gray-500 mt-2">Uploaded: {{ formatDate(song.created_at) }}</p>
+          <!-- Removed ID line -->
         </div>
-        <div class="mt-4 flex gap-2 justify-center">
-          <button type="button" @click="likeSong(song.id)" class="py-1 px-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 text-sm">Like</button>
-          <button type="button" @click="dislikeSong(song.id)" class="py-1 px-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 text-sm">Dislike</button>
-        </div>
-        <a :href="song.url" target="_blank" class="text-blue-600 hover:underline text-sm mt-2">Download File</a>
+        <!-- Removed Like/Dislike buttons div -->
+        <!-- Removed Download link -->
       </div>
     </div>
     <p v-else class="text-center text-gray-500 italic">No songs uploaded yet.</p>
@@ -172,203 +171,129 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { useAuthStore } from '~/store/authStore'; // Correct path to 'stores'
-import { useUploadStore } from '~/store/uploadStore'; // Import the upload store
+import { useAuthStore } from '~/store/authStore'; 
+import { useUploadStore } from '~/store/uploadStore'; 
+import { useSongComparisonStore } from '~/store/songComparisonStore'; 
+import { useSongStore } from '~/store/songStore'; 
 
 // Apply auth middleware to this page
 definePageMeta({
   middleware: ['auth'] 
 });
 
-// --- State and actions from new uploadStore ---
+// --- Stores ---
+// Initialize Pinia stores for use in this component
+const authStore = useAuthStore(); 
 const uploadStore = useUploadStore();
-const selectedFile = ref(null);
-const songTitle = ref('');
-const songArtist = ref('');
-const fileInput = ref(null);
+const songComparisonStore = useSongComparisonStore(); 
+const songStore = useSongStore(); // This store manages fetching and displaying all songs
 
-// --- Existing dashboard states ---
-const existingSongs = ref([]);
-const loadingFiles = ref(true);
-const comparisonDisplay = ref({ message: '', songs: [] });
-const gettingComparisonSongs = ref(false);
+// --- Upload Section States (managed by uploadStore primarily) ---
+const selectedFile = ref(null); // The file selected by the user
+const songTitle = ref('');      // Input for song title
+const songArtist = ref('');     // Input for song artist
+const fileInput = ref(null);    // Reference to the file input element for clearing it
 
-const audioRefs = ref([]);
-const audioClipTimeouts = []; // Changed to array for setTimeout IDs
+// --- Audio Playback Refs ---
+const audioRefs = ref([]); // Array to hold references to the <audio> DOM elements for comparison songs
+const audioClipTimeouts = []; // Array to store setTimeout IDs for managing 30-second clips
 
+// Helper function to set audio element references for comparison players
 const setAudioRef = (index, el) => {
   audioRefs.value[index] = el;
 };
 
+// Event handler for when a file is selected for upload
 const handleFileChange = (event) => {
   selectedFile.value = event.target.files[0];
 };
 
-// Refactored upload initiation to use the uploadStore
+// Initiates the song upload process by calling the uploadStore's action
 const initiateUpload = async () => {
-  // Pass the necessary data to the uploadStore's action
+  // Log current authentication status for debugging purposes
+  console.log('Initiating upload: Authenticated User:', authStore.authenticatedUser.value);
+  console.log('Initiating upload: Supabase User ID (from authStore):', authStore.user ? authStore.user.value?.id : 'N/A');
+
+  // Call the uploadStore's main action to handle file upload and metadata saving
   const success = await uploadStore.uploadSong(selectedFile.value, songTitle.value, songArtist.value);
+  
   if (success) {
-    await fetchExistingSongs(); // Refresh the main list after successful upload
-    // Clear form inputs
+    // No need to explicitly call songStore.fetchSongs() here.
+    // The songStore's Realtime subscription will automatically update the list
+    // when the new song is inserted into the database.
+
+    // Clear form inputs after a successful upload
     selectedFile.value = null;
     songTitle.value = '';
     songArtist.value = '';
     if (fileInput.value) {
-      fileInput.value.value = '';
+      fileInput.value.value = ''; // Resets the file input field
     }
   }
 };
 
-const fetchExistingSongs = async () => {
-  loadingFiles.value = true;
-  try {
-    const response = await fetch('/api/files');
-    if (response.ok) {
-      existingSongs.value = await response.json();
-    } else {
-      console.error('Failed to fetch existing songs:', response.statusText);
-      existingSongs.value = [];
-    }
-  } catch (error) {
-    console.error('Error fetching existing songs:', error);
-    existingSongs.value = [];
-  } finally {
-    loadingFiles.value = false;
-  }
-};
-
-const likeSong = async (songId) => {
-  try {
-    const response = await fetch(`/api/songs/${songId}/like`, { method: 'POST' });
-    if (response.ok) {
-      const data = await response.json();
-      const index = existingSongs.value.findIndex(s => s.id === songId);
-      if (index !== -1) {
-        existingSongs.value[index].likes = data.song.likes;
-      }
-      console.log(`Liked song ${songId}. New likes: ${data.song.likes}`);
-    } else {
-      console.error(`Failed to like song ${songId}:`, response.statusText);
-    }
-  } catch (error) {
-    console.error(`Error liking song ${songId}:`, error);
-  }
-};
-
-const dislikeSong = async (songId) => {
-  try {
-    const response = await fetch(`/api/songs/${songId}/dislike`, { method: 'POST' });
-    if (response.ok) {
-      const data = await response.json();
-      const index = existingSongs.value.findIndex(s => s.id === songId);
-      if (index !== -1) {
-        existingSongs.value[index].dislikes = data.song.dislikes;
-      }
-      console.log(`Disliked song ${songId}. New dislikes: ${data.song.dislikes}`);
-    } else {
-      console.error(`Failed to dislike song ${songId}:`, response.statusText);
-    }
-  } catch (error) {
-    console.error(`Error disliking song ${songId}:`, error);
-  }
-};
-
+// Initiates fetching two random songs for comparison via the songComparisonStore
 const getComparisonSongs = async () => {
   stopAllComparisonAudio(); // Stop any currently playing audio before fetching new songs
-  gettingComparisonSongs.value = true;
-  comparisonDisplay.value = { message: 'Picking two random songs...', songs: [] };
-  try {
-    const response = await fetch('/api/songs/random'); // This now returns two songs
-    if (response.ok) {
-      const data = await response.json();
-      if (data.songs && data.songs.length === 2) {
-        comparisonDisplay.value = { message: data.message, songs: data.songs };
-      } else {
-        comparisonDisplay.value = { message: data.message || 'Not enough songs for comparison.', songs: [] };
-      }
-    } else {
-      console.error('Failed to get comparison songs:', response.statusText);
-      comparisonDisplay.value = { message: 'Failed to retrieve songs for comparison.', songs: [] };
-    }
-  } catch (error) {
-    console.error('Error getting comparison songs:', error);
-    comparisonDisplay.value = { message: `Error: ${error.message}`, songs: [] };
-  } finally {
-    gettingComparisonSongs.value = false;
-  }
+  await songComparisonStore.fetchRandomComparisonSongs();
 };
 
+// Handles a comparison vote by calling the songComparisonStore's action
 const handleComparisonVote = async (chosenSongId, unchosenSongId) => {
-  stopAllComparisonAudio(); // Stop audio before voting
-  comparisonDisplay.value.message = 'Recording your vote...';
-  try {
-    const response = await fetch('/api/songs/compare-vote', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ chosenSongId, unchosenSongId }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      comparisonDisplay.value.message = data.message;
-      comparisonDisplay.value.songs = []; // Clear for next comparison
-      await fetchExistingSongs(); // Refresh the main list to show updated counts
-    } else {
-      const errorData = await response.json();
-      comparisonDisplay.value.message = `Vote failed: ${errorData.statusMessage || response.statusText}`;
-    }
-  } catch (error) {
-    console.error('Error recording comparison vote:', error);
-    comparisonDisplay.value.message = `An unexpected error occurred during vote: ${error.message}`;
-  }
+  stopAllComparisonAudio(); // Stop audio before recording the vote
+  await songComparisonStore.recordComparisonVote(chosenSongId, unchosenSongId);
+  // No need to explicitly call songStore.fetchSongs() here.
+  // The songStore's Realtime subscription will automatically update the approval rates
+  // when the song records are updated in the database by recordComparisonVote.
 };
 
+// --- Audio Playback Logic (Component-specific, interacts with DOM refs) ---
+
+// Stops all currently playing comparison audio clips and clears any timeouts
 const stopAllComparisonAudio = () => {
   audioRefs.value.forEach(audio => {
     if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
+      audio.pause();      // Pause playback
+      audio.currentTime = 0; // Reset to beginning
     }
   });
-  // Changed audioClipTimeouts to be an array, but the clear logic needs to handle that.
+  // Clear any active setTimeout instances that were managing 30-second clips
   audioClipTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
   audioClipTimeouts.splice(0, audioClipTimeouts.length); // Clear the array
 };
 
+// Plays the full duration of a selected comparison song
 const playFullSong = (index) => {
-  stopAllComparisonAudio(); // Stop others before playing this one
+  stopAllComparisonAudio(); // Stop other audio first
   const audio = audioRefs.value[index];
   if (audio) {
-    audio.currentTime = 0; // Start from beginning
+    audio.currentTime = 0; // Ensure playback starts from the beginning
     audio.play().catch(e => console.error("Error playing full song:", e));
   }
 };
 
+// Plays a 30-second clip of a selected comparison song
 const playClip = (index, durationSeconds) => {
-  stopAllComparisonAudio(); // Stop others before playing this one
+  stopAllComparisonAudio(); // Stop other audio first
   const audio = audioRefs.value[index];
   if (audio) {
-    audio.currentTime = 0; // Start from beginning
+    audio.currentTime = 0; // Ensure playback starts from the beginning
     audio.play().then(() => {
-      // Store timeout ID in the array at the corresponding index
+      // Set a timeout to automatically pause the audio after the specified duration
       const timeoutId = setTimeout(() => {
         audio.pause();
         audio.currentTime = 0; // Reset after clip ends
         console.log(`Clip ended for song ${index}`);
-      }, durationSeconds * 1000);
-      audioClipTimeouts[index] = timeoutId; // Assign directly to index in the array
+      }, durationSeconds * 1000); // Convert seconds to milliseconds
+      audioClipTimeouts[index] = timeoutId; // Store timeout ID for later clearing
 
-      // Also listen for manual pause to clear timeout
+      // Add an event listener to clear the timeout if the user manually pauses
       const onPause = () => {
         clearTimeout(timeoutId);
-        // Remove listener to prevent memory leaks if component unmounts
-        audio.removeEventListener('pause', onPause);
-        // Remove from array if paused early
+        audio.removeEventListener('pause', onPause); // Remove listener to prevent memory leaks
+        // Clean up the timeout ID from the array if paused early
         if (audioClipTimeouts[index] === timeoutId) {
-          delete audioClipTimeouts[index];
+          delete audioClipTimeouts[index]; 
         }
       };
       audio.addEventListener('pause', onPause);
@@ -377,19 +302,36 @@ const playClip = (index, durationSeconds) => {
   }
 };
 
+// Helper function to calculate the approval rate percentage
+const calculateApprovalRate = (likes, dislikes) => {
+  const totalVotes = likes + dislikes;
+  if (totalVotes === 0) {
+    return 'N/A'; // If no votes, display N/A
+  }
+  const percentage = (likes / totalVotes) * 100;
+  return percentage.toFixed(0); // Return percentage rounded to a whole number
+};
 
+// Helper function to format ISO date strings for display
 const formatDate = (isoString) => {
   if (!isoString) return '';
   const date = new Date(isoString);
   return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 };
 
+// --- Lifecycle Hooks ---
+
+// Runs when the component is mounted to the DOM
 onMounted(() => {
-  fetchExistingSongs();
+  songStore.fetchSongs()
+  // Initial fetch of songs is now handled by the watch(currentUser, ...) in songStore.
+  // The immediate: true on that watcher ensures songs are fetched as soon as user is available.
+  // songStore.fetchSongs(); // This line can be commented out or removed as it's redundant
 });
 
-// Lifecycle hook to clean up audio on component unmount
+// Runs when the component is unmounted from the DOM
 onUnmounted(() => {
-  stopAllComparisonAudio();
+  stopAllComparisonAudio(); // Clean up any active audio playback
 });
 </script>
+

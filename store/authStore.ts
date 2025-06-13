@@ -4,6 +4,9 @@ import { ref, watch } from 'vue'
 // Import composables provided by @nuxtjs/supabase and Nuxt itself
 import { useSupabaseClient, useSupabaseUser } from '#imports' // Module's composables
 import { useRouter } from '#app' // Nuxt's useRouter (from #app)
+import { useSongComparisonStore } from './songComparisonStore'
+import { useSongStore } from './songStore'
+
 
 export const useAuthStore = defineStore('authStore', () => {
     // These composables provide the initialized Supabase client and reactive user state
@@ -11,7 +14,8 @@ export const useAuthStore = defineStore('authStore', () => {
     const supabase = useSupabaseClient()
     const user = useSupabaseUser() // This is a reactive Ref<User | null> managed by the module
 
-    const router = useRouter(); // Nuxt's useRouter instance
+    const router = useRouter();
+     // Nuxt's useRouter instance
 
     // Reactive states derived from the module's `user` composable
     // These will now be kept in sync by the watcher below.
@@ -118,7 +122,6 @@ export const useAuthStore = defineStore('authStore', () => {
           throw error;
         } else {
           console.log('Auth Store: User signed out successfully');
-          // The `watch(user, ...)` handler will automatically trigger redirect to /signin
         }
     }
       
