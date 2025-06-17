@@ -81,11 +81,45 @@
   const registrationMessage = ref('');
   const isSuccess = ref(true);
   
-  const router = useRouter();
-  
   const handleRegistration = async () => {
-   authStore.signUpNewUser(email.value, password.value)
-  };
+  registering.value = true;
+  registrationMessage.value = ''; // Clear previous messages
+  isSuccess.value = true; // Optimistic success
+
+  try {
+    const { data, error } = await authStore.signUpNewUser(email.value, password.value);
+    if (error) {
+      console.error('Registration failed:', error.message);
+      registrationMessage.value = error.message;
+      // Handle specific error messages for better user experience
+      if (error.message.includes('User already registered')) {
+        registrationMessage.value = 'This email is already registered. Please sign in or use a different email.';
+      } else if (error.message.includes('Password should be at least 6 characters')) {
+        registrationMessage.value = 'Password must be at least 6 characters long.';
+      }
+      isSuccess.value = false;
+    } else if (data && data.user) {
+      // Successful registration, user might be signed in directly or needs email confirmation
+      
+      registrationMessage.value = 'Registration successful! Please check your email to confirm your account.';
+      if(data.user.identities?.length == 0){
+        registrationMessage.value = 'Account already exists! Please sign in!'
+      }
+      
+      isSuccess.value = true;
+      // Optionally clear fields or redirect
+      email.value = '';
+      password.value = '';
+      // No automatic redirect to dashboard here, as user needs to confirm email
+    } 
+  } catch (err: any) {
+    console.error('Unexpected registration error:', err);
+    registrationMessage.value = `An unexpected error occurred during registration: ${err.message || 'Please try again.'}`;
+    isSuccess.value = false;
+  } finally {
+    registering.value = false;
+  }
+};
   </script>
   
   <style scoped>

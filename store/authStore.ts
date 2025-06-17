@@ -20,7 +20,7 @@ export const useAuthStore = defineStore('authStore', () => {
     // Reactive states derived from the module's `user` composable
     // These will now be kept in sync by the watcher below.
     const authenticatedUser = ref(!!user.value) // Initial state based on module's user
-    const accessToken = ref<string | null>(user.value?.jwt || null) // Initial token
+    const accessToken = ref<string | null>(user.value?.id || null) // Initial token
     const refreshToken = ref<string | null>(null) // Module handles refresh token internally
     const signInError = ref<string | null>(null)
     // The `userId` ref from your previous version is now implicitly handled by `user.value?.id`
@@ -34,7 +34,8 @@ export const useAuthStore = defineStore('authStore', () => {
         console.log('Auth Store: New User Object:', newUser);
 
         authenticatedUser.value = !!newUser;
-        accessToken.value = newUser?.jwt || null;
+        accessToken.value = newUser?.id || null;
+        user.value = newUser
         // The module handles refreshing tokens behind the scenes.
 
         // Router pushes based on authentication state
@@ -65,16 +66,24 @@ export const useAuthStore = defineStore('authStore', () => {
     }
 
     async function signUpNewUser(email: string, password: string) {
-        signInError.value = null; // Clear previous errors
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+        });
+
+        console.log("DATA", data)
+        console.log("ERROR", error)
+
         if (error) {
-            signInError.value = error.message;
-            throw error;
+            console.error('Auth Store: SignUp error:', error.message);
+            // DO NOT router.push here directly on error, let component handle feedback first
+            return { data: null, error }; // Return the error
         }
-        // Supabase might require email confirmation. Component handles post-signup navigation.
+
         console.log('Auth Store: SignUp data:', data);
-        router.push("/sign-in"); // Existing user router push
-        return data; 
+        // Do NOT router.push here directly on success. Let component handle it,
+        // especially for email confirmation flows.
+        return { data, error: null }; // Return success data
     }
     
     async function signInWithEmail(email: string, password: string) {
