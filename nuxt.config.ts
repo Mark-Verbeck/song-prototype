@@ -53,12 +53,5 @@ export default defineNuxtConfig({
     // Use an environment variable here, so it's flexible for dev/prod.
     baseURL: process.env.NUXT_APP_BASE_URL || '/', 
     buildAssetsDir: '/_nuxt/', // Default, but ensure it's here
-  },
-  
-  // This explicitly sets the router base path for client-side navigation.
-  // It should usually match app.baseURL for GitHub Pages subfolder deployments.
-  router: {
-    baseURL: process.env.NUXT_APP_BASE_URL || '/', // Match app.baseURL
-  },
-  
+  }  
 })
