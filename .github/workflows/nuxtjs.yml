@@ -31,10 +31,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm' # This still helps with caching, but the registry override is key
+          cache: 'npm' 
+          # Directly set the registry here to override any local npmrc or cached settings
+          # This is often more reliable than 'npm config set' in a separate step.
+          registry-url: 'https://registry.npmjs.org/' # <--- CRITICAL CHANGE HERE
 
-      - name: Set npm registry to public # <-- NEW STEP: Force public npm registry
-        run: npm config set registry https://registry.npmjs.org/
+      # - name: Set npm registry to public # <-- REMOVE OR COMMENT OUT THIS STEP
+      #   run: npm config set registry https://registry.npmjs.org/
 
       - name: Install dependencies
         run: npm install
