@@ -18,13 +18,20 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # --- ADD ENV BLOCK HERE ---
+    env:
+      # These variables need to be exposed to the build process.
+      # Store them as GitHub Secrets for security!
+      NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL }}
+      NUXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NUXT_PUBLIC_SUPABASE_KEY }}
+      # If you used baseUrl in runtimeConfig, add it too
+      # NUXT_PUBLIC_BASE_URL: ${{ secrets.NUXT_PUBLIC_BASE_URL }} # Or directly as a string if always fixed, e.g., 'https://mark-verbeck.github.io/song-prototype/'
+    # --- END ENV BLOCK ---
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Enable Corepack (for Yarn 2+/pnpm)
-        # Keep this if your Nuxt project specifically uses Yarn 2+ or pnpm
-        # Otherwise, you can remove this line.
         run: corepack enable
 
       - name: Setup Node.js
@@ -32,18 +39,17 @@ jobs:
         with:
           node-version: "20"
           cache: 'npm' 
-          # Directly set the registry here to override any local npmrc or cached settings
-          # This is often more reliable than 'npm config set' in a separate step.
-          registry-url: 'https://registry.npmjs.org/' # <--- CRITICAL CHANGE HERE
-
-      # - name: Set npm registry to public # <-- REMOVE OR COMMENT OUT THIS STEP
-      #   run: npm config set registry https://registry.npmjs.org/
+          registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --verbose 
+      
+      - name: Show installed dependencies (for debugging)
+        run: npm ls || true
 
       - name: Build Nuxt application for GitHub Pages
-        run: NUXT_APP_BASE_URL=/song-prototype/ npx nuxt build --preset github_pages
+        # NUXT_APP_BASE_URL=/song-prototype/ is already present and correct for GitHub Pages
+        run: npx nuxt build --preset github_pages
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
