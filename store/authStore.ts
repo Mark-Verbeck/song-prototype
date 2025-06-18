@@ -103,15 +103,16 @@ export const useAuthStore = defineStore('authStore', () => {
 
     async function sendResetPasswordEmail(email: string) {
         signInError.value = null;
-        // The module correctly handles `redirectTo` for client-side
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `/update-password?password=reset`, // Relative path is correctly handled by module
+            redirectTo: `/update-password?password=reset`,
         });
         if (error) {
             signInError.value = error.message;
-            throw error;
+            // Do NOT throw here if you want the component to handle the return value
+            return { error }; // Return the error
         }
         console.log('Auth Store: Password reset email request sent.');
+        return { error: null }; // Return success (no error)
     }
 
     async function resetPassword(password: string) {

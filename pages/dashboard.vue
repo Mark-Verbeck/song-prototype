@@ -18,42 +18,37 @@ import { useSongStore } from '~/store/songStore';
 import SongUploader from '~/components/dashboard/songUploader.vue';
 import SongComparison from '~/components/dashboard/songComparison.vue'
 import SongList from '~/components/dashboard/songList.vue';
-// Apply auth middleware to this page
+
 definePageMeta({
   middleware: ['auth'] 
 });
 
-const songStore = useSongStore(); // This store manages fetching and displaying all songs
+const songStore = useSongStore(); 
 
 
-// --- Audio Playback Refs ---
-const audioRefs = ref([]); // Array to hold references to the <audio> DOM elements for comparison songs
-const audioClipTimeouts = []; // Array to store setTimeout IDs for managing 30-second clips
+const audioRefs = ref([]); 
+const audioClipTimeouts = []; 
 
-// Stops all currently playing comparison audio clips and clears any timeouts
+
 const stopAllComparisonAudio = () => {
   audioRefs.value.forEach(audio => {
     if (audio) {
-      audio.pause();      // Pause playback
-      audio.currentTime = 0; // Reset to beginning
+      audio.pause();      
+      audio.currentTime = 0; 
     }
   });
-  // Clear any active setTimeout instances that were managing 30-second clips
+  
   audioClipTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
-  audioClipTimeouts.splice(0, audioClipTimeouts.length); // Clear the array
+  audioClipTimeouts.splice(0, audioClipTimeouts.length); 
 };
 
-// Runs when the component is mounted to the DOM
+
 onMounted(() => {
   songStore.fetchSongs()
-  // Initial fetch of songs is now handled by the watch(currentUser, ...) in songStore.
-  // The immediate: true on that watcher ensures songs are fetched as soon as user is available.
-  // songStore.fetchSongs(); // This line can be commented out or removed as it's redundant
 });
 
-// Runs when the component is unmounted from the DOM
 onUnmounted(() => {
-  stopAllComparisonAudio(); // Clean up any active audio playback
+  stopAllComparisonAudio(); 
 });
 </script>
 
