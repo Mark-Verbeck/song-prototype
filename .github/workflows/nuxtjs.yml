@@ -18,42 +18,46 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # --- ADD ENV BLOCK HERE ---
     env:
-      # These variables need to be exposed to the build process.
-      # Store them as GitHub Secrets for security!
+      # Pass Supabase secrets as environment variables for the build process
       NUXT_PUBLIC_SUPABASE_URL: ${{ secrets.NUXT_PUBLIC_SUPABASE_URL }}
       NUXT_PUBLIC_SUPABASE_KEY: ${{ secrets.NUXT_PUBLIC_SUPABASE_KEY }}
-      # If you used baseUrl in runtimeConfig, add it too
-      # NUXT_PUBLIC_BASE_URL: ${{ secrets.NUXT_PUBLIC_BASE_URL }} # Or directly as a string if always fixed, e.g., 'https://mark-verbeck.github.io/song-prototype/'
-    # --- END ENV BLOCK ---
+      # Crucial: Set the base URL for GitHub Pages deployment.
+      # This MUST match your repository name if deployed to https://<username>.github.io/<repo-name>/
+      NUXT_APP_BASE_URL: '/song-prototype/' 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Enable Corepack (for Yarn 2+/pnpm)
+        # Keep this if your Nuxt project specifically uses Yarn 2+ or pnpm
         run: corepack enable
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: 'npm' 
+          node-version: "20" # Recommended LTS Node.js version for Nuxt 3
+          cache: 'npm' # Cache npm dependencies for faster builds
+          # Explicitly set the npm registry to public to avoid internal registry issues
           registry-url: 'https://registry.npmjs.org/'
 
       - name: Install dependencies
+        # --verbose can be removed once issues are resolved for faster logs
         run: npm install --verbose 
       
-      - name: Show installed dependencies (for debugging)
+      - name: Show installed dependencies (for debugging, optional)
         run: npm ls || true
 
       - name: Build Nuxt application for GitHub Pages
-        # NUXT_APP_BASE_URL=/song-prototype/ is already present and correct for GitHub Pages
-        run: npx nuxt build --preset github_pages
+        # The --dotenv ./.env flag ensures environment variables from .env are loaded.
+        # The --preset github_pages configures Nitro for static GitHub Pages deployment.
+        # NUXT_APP_BASE_URL is now read from the job's 'env' block by nuxt.config.ts
+        run: npx nuxt build --dotenv ./.env --preset github_pages
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          # This path MUST point to the directory containing your built static files
           path: ./.output/public
 
   deploy:
