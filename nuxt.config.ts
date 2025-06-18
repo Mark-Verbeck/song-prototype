@@ -46,4 +46,19 @@ export default defineNuxtConfig({
       db: { schema: 'public' },
     },
   },
+  app: {
+    // This tells Nuxt where your app is hosted relative to the domain root.
+    // For GitHub Pages, it's typically `/repository-name/`.
+    // Ensure `NUXT_APP_BASE_URL` env variable is set in GitHub Actions.
+    // Use an environment variable here, so it's flexible for dev/prod.
+    baseURL: process.env.NUXT_APP_BASE_URL || '/', 
+    buildAssetsDir: '/_nuxt/', // Default, but ensure it's here
+  },
+  
+  // This explicitly sets the router base path for client-side navigation.
+  // It should usually match app.baseURL for GitHub Pages subfolder deployments.
+  router: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/', // Match app.baseURL
+  },
+  
 })
