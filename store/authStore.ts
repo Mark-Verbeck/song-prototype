@@ -30,12 +30,11 @@ export const useAuthStore = defineStore('authStore', () => {
     // This synchronizes your store's `authenticatedUser` and token refs,
     // and handles routing based on authentication state.
     watch(user, (newUser) => {
-        console.log('Auth Store: Supabase user changed via module watch:');
-        console.log('Auth Store: New User Object:', newUser);
+        console.log("CURRENT ROUTE", router.currentRoute.value.path)
 
         authenticatedUser.value = !!newUser;
         accessToken.value = newUser?.id || null;
-        user.value = newUser
+        // user.value = newUser
         // The module handles refreshing tokens behind the scenes.
 
         // Router pushes based on authentication state
