@@ -104,7 +104,7 @@ export const useAuthStore = defineStore('authStore', () => {
     async function sendResetPasswordEmail(email: string) {
         signInError.value = null;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `/update-password?password=reset`,
+            redirectTo: `/reset-password?password=reset`,
         });
         if (error) {
             signInError.value = error.message;

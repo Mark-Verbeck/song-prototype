@@ -1,57 +1,71 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import tailwindcss from "@tailwindcss/vite";
+import tailwindcss from "@tailwindcss/vite"; // Keep this import if you explicitly use it in vite.plugins
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
-  css: ['~/assets/css/main.css'],
+  
+  // Global CSS/TailwindCSS setup
+  css: ['~/assets/css/main.css'], // Your main CSS file for Tailwind directives
 
   vite: {
     plugins: [
-      tailwindcss(),
+      // If you're using @nuxtjs/tailwindcss, this plugin might be redundant
+      // as the module usually injects it. Keep if you have specific Vite/Tailwind needs.
+      tailwindcss(), 
     ],
+    // --- CRITICAL FIX: Explicitly set Vite's base URL ---
+    // This ensures all built assets (JS, CSS, static files) correctly
+    // resolve their paths relative to the GitHub Pages subpath.
+    base: process.env.NUXT_APP_BASE_URL || '/', 
   },
 
-  modules: ['@pinia/nuxt', '@nuxtjs/supabase'],
+  modules: [
+    '@pinia/nuxt',
+    '@nuxtjs/supabase',, // Ensure this is also listed as a module for full integration
+  ],
+
   runtimeConfig: {
     public: {
       supabaseUrl: process.env.NUXT_PUBLIC_SUPABASE_URL,
       supabaseKey: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-      baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+      baseUrl: process.env.NUXT_PUBLIC_BASE_URL || 'http://localhost:3000', // Your general app base URL for internal redirects
+      NUXT_APP_BASE_URL: process.env.NUXT_APP_BASE_URL || '/', // Make available in client runtime
     }
   },
+
   supabase: {
-    // The module will automatically pick up `supabaseUrl` and `supabaseKey`
-    // from `runtimeConfig.public` if they are named this way.
-    // However, you can explicitly define them here for clarity or custom names:
     url: process.env.NUXT_PUBLIC_SUPABASE_URL,
     key: process.env.NUXT_PUBLIC_SUPABASE_KEY,
-
-    // Configure authentication redirects
-    // This makes the module redirect users automatically after login/logout, etc.
-    // Crucially, set `redirect` to `false` if you want to manually handle redirects
-    // in your authStore's onAuthStateChange or component logic.
-    // If you enable this to `true`, the module will handle the /confirm flow.
-    redirect: false,
-    // Set to true if you want the module to automatically redirect
-    // users to `redirect.login` when not authenticated.
-    // If set to false, you'll manage authentication checks and redirects yourself (e.g., via middleware).
-    // For your current setup with auth middleware, you might set this to false,
-    // but enabling it can simplify things. Let's start with false for now, aligning with your middleware.
-    // If you switch `redirect: true` here, you might adjust/remove your custom middleware/redirects.
-    // example: redirect: true, 
-
-    // You can also add client options here, e.g., for custom headers or schema
+    redirect: false, // You handle redirects via middleware/auth.ts
+    // redirectOptions is removed, as redirect: false disables module's internal redirects.
     clientOptions: {
       db: { schema: 'public' },
     },
   },
+
   app: {
-    // This tells Nuxt where your app is hosted relative to the domain root.
-    // For GitHub Pages, it's typically `/repository-name/`.
-    // Ensure `NUXT_APP_BASE_URL` env variable is set in GitHub Actions.
-    // Use an environment variable here, so it's flexible for dev/prod.
+    // This is the primary base URL for ALL generated assets and internal router paths.
+    // It should match your GitHub Pages repository name (e.g., '/song-prototype/').
     baseURL: process.env.NUXT_APP_BASE_URL || '/', 
-    buildAssetsDir: '/_nuxt/', // Default, but ensure it's here
+    buildAssetsDir: '/_nuxt/', // Default Nuxt asset directory
+  },
+  
+  // --- CRITICAL FIX: REMOVE router.options.base ---
+  // This property caused a TypeScript error and is not the correct way to set
+  // the router's base in Nuxt 3. app.baseURL handles this for routing.
+  // router: {
+  //   options: {
+  //     base: process.env.NUXT_APP_BASE_URL || '/',
+  //   },
+  // },
+
+  nitro: {
+    // Optional: Prerendering can optimize static sites, but can also cause issues if not
+    // all dynamic data is handled during build. Keep commented out for now if not needed.
+    // prerender: {
+    //   crawlLinks: true,
+    //   routes: ['/', '/signin', '/register', '/reset-password', '/update-password', '/confirm'],
+    // },
   }  
 })
