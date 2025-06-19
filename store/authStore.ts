@@ -39,14 +39,14 @@ export const useAuthStore = defineStore('authStore', () => {
 
         // Router pushes based on authentication state
         if (newUser) { // User is authenticated
-            if (router.currentRoute.value.path !== '/dashboard') {
-                router.push('/dashboard');
+            if (router.currentRoute.value.path !== '/dashboard/') {
+                router.push('/dashboard/');
             }
         } else { // User is not authenticated
             // Only redirect if not already on an auth-related page
-            const authPages = ['/sign-in', '/register', '/reset-password', '/update-password', '/']; // Include '/' if it's the signin/home page
+            const authPages = ['/sign-in/', '/register/', '/reset-password/', '/update-password/', '/']; // Include '/' if it's the signin/home page
             if (!authPages.includes(router.currentRoute.value.path)) {
-                router.push('/sign-in');
+                router.push('/sign-in/');
             }
         }
     }, { immediate: true }); // Run immediately on store creation to set initial state
